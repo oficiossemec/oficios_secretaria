@@ -6,7 +6,7 @@ from supabase import create_client, Client
 
 # Configuração da página
 st.set_page_config(
-    page_title="Gestão de Ofícios - Secretaria de Educação de Mansidão",
+    page_title="Ofícios SEMEC",
     layout="wide",
 )
 
