@@ -156,7 +156,7 @@ with st.form("form_oficio", clear_on_submit=False):
 st.divider()
 
 # Tabela de Consulta em Tempo Real
-st.subheader("📋 Ofícios Registrados")
+st.subheader("Ofícios Registrados")
 
 response = (
     supabase.table("oficios")
