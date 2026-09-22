@@ -46,39 +46,34 @@ def obter_sugestao_numero(ano_atual):
     return 1
 
 
-# Função para salvar o ofício no Supabase com verificação de duplicação
-def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
-    checar = (
-        supabase.table("oficios")
-        .select("id")
-        .eq("numero", numero)
-        .eq("ano", ano_atual)
-        .execute()
-    )
-    if checar.data:
-        return (
-            False,
-            f"❌ O número de ofício {numero}/{ano_atual} já foi cadastrado por outro usuário!",
-        )
-
-    codigo_formatado = f"OF-SEC-{ano_atual}/{numero:03d}"
+# Função para salvar o ofício no Supabase via RPC (Atómica / Anti-concorrência)
+def salvar_oficio(ano_atual, tema, setor, responsavel):
     data_hoje = obter_data_hora_brasil()
 
-    dados = {
-        "numero": numero,
-        "ano": ano_atual,
-        "codigo_oficio": codigo_formatado,
-        "tema": tema,
-        "setor": setor,
-        "responsavel": responsavel,
-        "data_emissao": data_hoje,
-    }
+    try:
+        # Chama a função PL/pgSQL no Supabase que trava a tabela e gera o número único
+        resultado = supabase.rpc(
+            "registrar_oficio",
+            {
+                "p_ano": ano_atual,
+                "p_tema": tema,
+                "p_setor": setor,
+                "p_responsavel": responsavel,
+                "p_data_emissao": data_hoje,
+            },
+        ).execute()
 
-    supabase.table("oficios").insert(dados).execute()
-    return (
-        True,
-        f"✅ Ofício cadastrado com sucesso! **Número: {codigo_formatado}**",
-    )
+        if resultado.data:
+            codigo_gerado = resultado.data[0]["codigo_oficio"]
+            return (
+                True,
+                f"✅ Ofício cadastrado com sucesso! **Número: {codigo_gerado}**",
+            )
+        else:
+            return False, "❌ Erro ao registrar o ofício. Tente novamente."
+
+    except Exception as e:
+        return False, f"❌ Erro ao salvar no banco de dados: {str(e)}"
 
 
 # Função para remover um ofício do banco de dados
@@ -116,11 +111,11 @@ with st.form("form_oficio", clear_on_submit=False):
 
     with col1:
         sugestao_formatada = f"{int(sugestao_num):03d}"
-        numero_digitado_str = st.text_input(
-            "Número do Ofício",
+        st.text_input(
+            "Próximo Número (Automático)",
             value=sugestao_formatada,
-            max_chars=5,
-            help="O número sugere o próximo sequencial formatado (ex: 003), mas pode ser alterado manualmente.",
+            disabled=True,
+            help="O número é gerado sequencialmente e bloqueado para evitar duplicidades em acessos simultâneos.",
         )
 
     with col2:
@@ -134,22 +129,16 @@ with st.form("form_oficio", clear_on_submit=False):
     submetido = st.form_submit_button("Registrar Ofício")
 
     if submetido:
-        if tema and setor and responsavel and numero_digitado_str:
-            if numero_digitado_str.isdigit():
-                numero_convertido = int(numero_digitado_str)
-                sucesso, mensagem = salvar_oficio(
-                    numero_convertido, ano_atual, tema, setor, responsavel
-                )
+        if tema and setor and responsavel:
+            sucesso, mensagem = salvar_oficio(
+                ano_atual, tema, setor, responsavel
+            )
 
-                if sucesso:
-                    st.success(mensagem)
-                    st.rerun()
-                else:
-                    st.error(mensagem)
+            if sucesso:
+                st.success(mensagem)
+                st.rerun()
             else:
-                st.error(
-                    "❌ Digite apenas números no campo 'Número do Ofício'."
-                )
+                st.error(mensagem)
         else:
             st.warning("⚠️ Preencha todos os campos antes de registrar.")
 
