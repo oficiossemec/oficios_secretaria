@@ -216,7 +216,7 @@ if registros:
 
     st.divider()
 
-    # Área de Exclusão de Ofício
+    # Área de Exclusão de Ofício com Proteção por Senha
     st.subheader("🗑️ Cancelar / Remover Ofício Cadastrado")
 
     opcoes_oficios = {
@@ -224,14 +224,27 @@ if registros:
         for _, row in df.iterrows()
     }
 
-    oficio_selecionado = st.selectbox(
-        "Selecione o ofício que deseja remover:", list(opcoes_oficios.keys())
-    )
+    col_sel, col_pwd = st.columns([2, 1])
+
+    with col_sel:
+        oficio_selecionado = st.selectbox(
+            "Selecione o ofício que deseja remover:", list(opcoes_oficios.keys())
+        )
+
+    with col_pwd:
+        senha_digitada = st.text_input(
+            "Senha de confirmação:",
+            type="password",
+            help="Digite a senha para autorizar a exclusão do registro.",
+        )
 
     if st.button("❌ Confirmar Exclusão", type="primary"):
-        id_para_deletar = opcoes_oficios[oficio_selecionado]
-        deletar_oficio(id_para_deletar)
-        st.success("Ofício removido com sucesso!")
-        st.rerun()
+        if senha_digitada == "#semec2026":
+            id_para_deletar = opcoes_oficios[oficio_selecionado]
+            deletar_oficio(id_para_deletar)
+            st.success("Ofício removido com sucesso!")
+            st.rerun()
+        else:
+            st.error("❌ Senha incorreta! A remoção não foi autorizada.")
 else:
     st.info("Nenhum ofício cadastrado até o momento.")
