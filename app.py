@@ -26,7 +26,6 @@ def obter_data_hora_brasil():
         fuso_br = zoneinfo.ZoneInfo("America/Bahia")
         return datetime.datetime.now(fuso_br).strftime("%d/%m/%Y %H:%M")
     except Exception:
-        # Fallback de 3 horas a menos caso a timezone não esteja disponível
         fuso_manual = datetime.timezone(datetime.timedelta(hours=-3))
         return datetime.datetime.now(fuso_manual).strftime("%d/%m/%Y %H:%M")
 
@@ -46,15 +45,15 @@ def obter_sugestao_numero(ano_atual):
     return 1
 
 
-# Função para salvar o ofício no Supabase via RPC (Atómica / Anti-concorrência)
-def salvar_oficio(ano_atual, tema, setor, responsavel):
+# Função para salvar o ofício mantendo o número digitado e tratando concorrência no banco
+def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
     data_hoje = obter_data_hora_brasil()
 
     try:
-        # Chama a função PL/pgSQL no Supabase que trava a tabela e gera o número único
         resultado = supabase.rpc(
-            "registrar_oficio",
+            "registrar_oficio_manual",
             {
+                "p_numero": numero,
                 "p_ano": ano_atual,
                 "p_tema": tema,
                 "p_setor": setor,
@@ -64,11 +63,14 @@ def salvar_oficio(ano_atual, tema, setor, responsavel):
         ).execute()
 
         if resultado.data:
-            codigo_gerado = resultado.data[0]["codigo_oficio"]
-            return (
-                True,
-                f"✅ Ofício cadastrado com sucesso! **Número: {codigo_gerado}**",
-            )
+            res = resultado.data[0]
+            if res["sucesso"]:
+                return (
+                    True,
+                    f"✅ Ofício cadastrado com sucesso! **Número: {res['codigo_oficio']}**",
+                )
+            else:
+                return False, res["mensagem"]
         else:
             return False, "❌ Erro ao registrar o ofício. Tente novamente."
 
@@ -111,11 +113,11 @@ with st.form("form_oficio", clear_on_submit=False):
 
     with col1:
         sugestao_formatada = f"{int(sugestao_num):03d}"
-        st.text_input(
-            "Próximo Número (Automático)",
+        numero_digitado_str = st.text_input(
+            "Número do Ofício",
             value=sugestao_formatada,
-            disabled=True,
-            help="O número é gerado sequencialmente e bloqueado para evitar duplicidades em acessos simultâneos.",
+            max_chars=5,
+            help="O número sugere o próximo sequencial formatado (ex: 003), mas pode ser alterado manualmente.",
         )
 
     with col2:
@@ -129,16 +131,22 @@ with st.form("form_oficio", clear_on_submit=False):
     submetido = st.form_submit_button("Registrar Ofício")
 
     if submetido:
-        if tema and setor and responsavel:
-            sucesso, mensagem = salvar_oficio(
-                ano_atual, tema, setor, responsavel
-            )
+        if tema and setor and responsavel and numero_digitado_str:
+            if numero_digitado_str.isdigit():
+                numero_convertido = int(numero_digitado_str)
+                sucesso, mensagem = salvar_oficio(
+                    numero_convertido, ano_atual, tema, setor, responsavel
+                )
 
-            if sucesso:
-                st.success(mensagem)
-                st.rerun()
+                if sucesso:
+                    st.success(mensagem)
+                    st.rerun()
+                else:
+                    st.error(mensagem)
             else:
-                st.error(mensagem)
+                st.error(
+                    "❌ Digite apenas números no campo 'Número do Ofício'."
+                )
         else:
             st.warning("⚠️ Preencha todos os campos antes de registrar.")
 
