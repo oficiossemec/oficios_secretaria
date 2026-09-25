@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 from supabase import create_client, Client
 
-
 st.set_page_config(
     page_title="Ofícios SEMEC",
     layout="wide",
@@ -17,6 +16,7 @@ def init_supabase() -> Client:
     key = st.secrets["SUPABASE_KEY"]
     return create_client(url, key)
 
+
 supabase = init_supabase()
 
 
@@ -27,7 +27,6 @@ def obter_data_hora_brasil():
     except Exception:
         fuso_manual = datetime.timezone(datetime.timedelta(hours=-3))
         return datetime.datetime.now(fuso_manual).strftime("%d/%m/%Y %H:%M")
-
 
 
 def obter_sugestao_numero(ano_atual):
@@ -42,7 +41,6 @@ def obter_sugestao_numero(ano_atual):
     if response.data:
         return response.data[0]["numero"] + 1
     return 1
-
 
 
 def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
@@ -77,10 +75,8 @@ def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
         return False, f"❌ Erro ao salvar no banco de dados: {str(e)}"
 
 
-
 def deletar_oficio(id_oficio):
     supabase.table("oficios").delete().eq("id", id_oficio).execute()
-
 
 
 col_logo, col_titulo = st.columns([1, 4])
@@ -97,7 +93,6 @@ with col_titulo:
 
 st.divider()
 
-
 try:
     fuso_br = zoneinfo.ZoneInfo("America/Bahia")
     ano_atual = datetime.datetime.now(fuso_br).year
@@ -106,17 +101,20 @@ except Exception:
 
 sugestao_num = obter_sugestao_numero(ano_atual)
 
-
 with st.form("form_oficio", clear_on_submit=False):
     col1, col2, col3 = st.columns([1, 2, 2])
 
     with col1:
-        sugestao_formatada = f"{int(sugestao_num):03d}"
+        num_int = int(sugestao_num)
+        # Formata com pelo menos 3 dígitos para números < 1000, e completo para maiores
+        sugestao_formatada = (
+            f"{num_int:03d}" if num_int < 1000 else str(num_int)
+        )
+
         numero_digitado_str = st.text_input(
             "Número do Ofício",
             value=sugestao_formatada,
-            max_chars=5,
-            help="O número sugere o próximo sequencial formatado (ex: 003), mas pode ser alterado manualmente.",
+            help="O número sugere o próximo sequencial, mas pode ser alterado manualmente.",
         )
 
     with col2:
@@ -150,7 +148,6 @@ with st.form("form_oficio", clear_on_submit=False):
             st.warning("⚠️ Preencha todos os campos antes de registrar.")
 
 st.divider()
-
 
 st.subheader("Ofícios Registrados")
 
