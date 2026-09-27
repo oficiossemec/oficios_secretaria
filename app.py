@@ -4,14 +4,14 @@ import pandas as pd
 import streamlit as st
 from supabase import Client, create_client
 
-# Configuração da página
+
 st.set_page_config(
     page_title="Ofícios SEMEC",
     layout="wide",
 )
 
 
-# Conexão com o Supabase usando as chaves dos Secrets
+
 @st.cache_resource
 def init_supabase() -> Client:
     url = st.secrets["SUPABASE_URL"]
@@ -22,7 +22,7 @@ def init_supabase() -> Client:
 supabase = init_supabase()
 
 
-# Função para obter a hora atual no fuso da Bahia / Brasília (UTC-3)
+
 def obter_data_hora_brasil():
     try:
         fuso_br = zoneinfo.ZoneInfo("America/Bahia")
@@ -32,7 +32,7 @@ def obter_data_hora_brasil():
         return datetime.datetime.now(fuso_manual).strftime("%d/%m/%Y %H:%M")
 
 
-# Função para obter a sugestão do próximo número de ofício
+
 def obter_sugestao_numero(ano_atual):
     response = (
         supabase.table("oficios")
@@ -47,7 +47,7 @@ def obter_sugestao_numero(ano_atual):
     return 1
 
 
-# Função para salvar o ofício mantendo o número digitado
+
 def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
     data_hoje = obter_data_hora_brasil()
 
@@ -80,7 +80,7 @@ def salvar_oficio(numero, ano_atual, tema, setor, responsavel):
         return False, f"❌ Erro ao salvar no banco de dados: {str(e)}"
 
 
-# Função para remover um ofício do banco de dados com verificação de sucesso
+
 def deletar_oficio(id_oficio):
     try:
         response = (
@@ -100,7 +100,7 @@ def deletar_oficio(id_oficio):
         return False, f"Erro ao deletar no banco de dados: {str(e)}"
 
 
-# --- CABEÇALHO COM LOGO ---
+
 col_logo, col_titulo = st.columns([1, 4])
 
 with col_logo:
@@ -115,7 +115,7 @@ with col_titulo:
 
 st.divider()
 
-# Obtém o ano atual considerando o fuso da Bahia/Brasília
+
 try:
     fuso_br = zoneinfo.ZoneInfo("America/Bahia")
     ano_atual = datetime.datetime.now(fuso_br).year
@@ -124,7 +124,7 @@ except Exception:
 
 sugestao_num = obter_sugestao_numero(ano_atual)
 
-# Formulário de Cadastro
+
 with st.form("form_oficio", clear_on_submit=False):
     col1, col2, col3 = st.columns([1, 2, 2])
 
@@ -172,7 +172,7 @@ with st.form("form_oficio", clear_on_submit=False):
 
 st.divider()
 
-# Tabela de Consulta em Tempo Real
+
 st.subheader("Ofícios Registrados")
 
 response = (
@@ -236,8 +236,8 @@ if registros:
 
     st.divider()
 
-    # Área de Exclusão de Ofício com Proteção por Senha
-    st.subheader("🗑️ Cancelar / Remover Ofício Cadastrado")
+   
+    st.subheader("Remover Ofício Cadastrado")
 
     opcoes_oficios = {
         f"{row['Código']} - {row['Assunto / Tema']} ({row['Setor']})": row["ID"]
