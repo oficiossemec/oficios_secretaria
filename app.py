@@ -252,9 +252,11 @@ if registros:
         )
 
     with col_pwd:
+        # Vincula o campo de senha a uma chave no session_state para poder limpá-lo
         senha_digitada = st.text_input(
             "Senha de confirmação:",
             type="password",
+            key="senha_exclusao_input",
             help="Digite a senha para autorizar a exclusão do registro.",
         )
 
@@ -264,6 +266,8 @@ if registros:
             sucesso, msg = deletar_oficio(id_para_deletar)
 
             if sucesso:
+                # Limpa a senha digitada do estado da aplicação antes de recarregar
+                st.session_state["senha_exclusao_input"] = ""
                 st.success(msg)
                 st.rerun()
             else:
