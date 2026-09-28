@@ -258,7 +258,7 @@ if registros:
             help="Digite a senha para autorizar a exclusão do registro.",
         )
 
-    if st.button("❌ Confirmar Exclusão", type="primary"):
+    if st.button("Confirmar Exclusão", type="primary"):
         if senha_digitada == "#semec2026":
             id_para_deletar = opcoes_oficios[oficio_selecionado]
             sucesso, msg = deletar_oficio(id_para_deletar)
