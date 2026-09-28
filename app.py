@@ -213,7 +213,7 @@ if registros:
 
         st.write("")
         st.download_button(
-            label="📥 Baixar Backup (Excel)",
+            label=" Baixar Backup (Excel)",
             data=csv_excel,
             file_name=f"backup_oficios_{data_hoje_str}.csv",
             mime="text/csv",
